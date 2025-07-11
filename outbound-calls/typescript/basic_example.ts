@@ -5,13 +5,12 @@
  * This example demonstrates how to:
  * 1. Create a test run and get assigned phone numbers
  * 2. Display the numbers to call
- * 3. Optionally wait for completion and show results
+ * 3. Show dashboard URL for monitoring
  * 
  * Perfect for getting started with voice agent testing.
  */
 
 import axios, { AxiosInstance } from 'axios';
-import * as readline from 'readline';
 
 interface TestRunResponse {
   testRunId: string;
@@ -21,28 +20,6 @@ interface TestRunResponse {
     testCaseRunId?: string;
   }>;
   expiresAt: string;
-}
-
-interface TestResults {
-  summary: {
-    id: string;
-    status: string;
-    stats: {
-      total: number;
-      completed: number;
-      failed: number;
-      pending: number;
-      inProgress: number;
-    };
-  };
-  results: Array<{
-    id: string;
-    testCaseId: string;
-    status: string;
-    durationSeconds?: number;
-    recordingUrl?: string;
-    transcriptionDataUrl?: string;
-  }>;
 }
 
 class HammingVoiceAgentAPI {
@@ -75,113 +52,6 @@ class HammingVoiceAgentAPI {
     
     return response.data;
   }
-
-  async getTestRunStatus(testRunId: string): Promise<any> {
-    const response = await this.client.get(`/api/rest/test-runs/${testRunId}/status`);
-    return response.data;
-  }
-
-  async getTestResults(testRunId: string): Promise<TestResults> {
-    const response = await this.client.get(`/api/rest/test-runs/${testRunId}/results`);
-    return response.data;
-  }
-}
-
-function printAssignedNumbers(assignedNumbers: TestRunResponse['assignedNumbers']): void {
-  console.log('\n📞 ASSIGNED PHONE NUMBERS');
-  console.log('='.repeat(60));
-  console.log('Call these numbers to test your agent:');
-  
-  assignedNumbers.forEach((assignment, index) => {
-    console.log(`  ${index + 1}. ${assignment.phoneNumber}`);
-    console.log(`     Test Case: ${assignment.testCaseTitle}`);
-    console.log(`     Test ID: ${assignment.testCaseRunId || 'N/A'}`);
-    console.log();
-  });
-  
-  console.log('📋 Instructions:');
-  console.log('  1. Call each number from your test phone');
-  console.log('  2. Follow the test case scenario');
-  console.log('  3. Wait for the test run to complete');
-  console.log('  4. Review results in the dashboard');
-  console.log('='.repeat(60));
-}
-
-function printTestResults(results: TestResults, testRunId: string, dashboardUrl: string): void {
-  console.log('\n' + '='.repeat(60));
-  console.log('VOICE AGENT TEST RESULTS');
-  console.log('='.repeat(60));
-  console.log(`Test Run ID: ${testRunId}`);
-  console.log(`View Results: ${dashboardUrl}`);
-  
-  const { stats } = results.summary;
-  console.log(`Total Tests: ${stats.total}`);
-  console.log(`Completed: ${stats.completed}`);
-  console.log(`Failed: ${stats.failed}`);
-  console.log(`Pending: ${stats.pending}`);
-  
-  if (stats.completed > 0) {
-    const successRate = ((stats.completed - stats.failed) / stats.completed) * 100;
-    console.log(`Success Rate: ${successRate.toFixed(1)}%`);
-  }
-  
-  // Show individual test results
-  if (results.results.length > 0) {
-    console.log(`\nIndividual Test Results (${results.results.length} tests):`);
-    results.results.forEach((result, index) => {
-      console.log(`  ${index + 1}. Status: ${result.status}, Duration: ${result.durationSeconds || 0}s`);
-      
-      if (result.recordingUrl) {
-        console.log(`     🎵 Recording: ${result.recordingUrl}`);
-      }
-      
-      if (result.transcriptionDataUrl) {
-        console.log(`     📝 Transcript: ${result.transcriptionDataUrl}`);
-      }
-    });
-  }
-  
-  console.log('='.repeat(60));
-}
-
-async function waitForCompletion(api: HammingVoiceAgentAPI, testRunId: string, maxWaitSeconds: number = 600): Promise<TestResults | null> {
-  console.log(`\n⏳ Waiting for test run ${testRunId} to complete...`);
-  console.log('💡 Tip: You can skip waiting and check results later in the dashboard');
-  
-  const startTime = Date.now();
-  
-  while (true) {
-    if (Date.now() - startTime > maxWaitSeconds * 1000) {
-      console.log(`⏰ Timeout reached (${maxWaitSeconds}s). Check dashboard for results.`);
-      return null;
-    }
-    
-    const status = await api.getTestRunStatus(testRunId);
-    
-    if (['COMPLETED', 'FAILED'].includes(status.status)) {
-      console.log(`✅ Test run ${status.status.toLowerCase()}`);
-      break;
-    }
-    
-    console.log(`🔄 Status: ${status.status} - waiting...`);
-    await new Promise(resolve => setTimeout(resolve, 10000));
-  }
-  
-  return await api.getTestResults(testRunId);
-}
-
-function askQuestion(question: string): Promise<string> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-  
-  return new Promise(resolve => {
-    rl.question(question, answer => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
 }
 
 async function main(): Promise<number> {
@@ -218,30 +88,20 @@ async function main(): Promise<number> {
     console.log(`📊 Test Run ID: ${testRunId}`);
     
     // Display assigned numbers
-    printAssignedNumbers(assignedNumbers);
+    console.log('\n📞 ASSIGNED PHONE NUMBERS');
+    console.log('='.repeat(60));
+    console.log('Call these numbers to test your agent:');
     
-    // Ask user if they want to wait for completion
-    console.log('\n🤔 Options:');
-    console.log('  1. Wait for test completion (recommended for small tests)');
-    console.log('  2. Exit now and check results later in dashboard');
+    assignedNumbers.forEach((assignment, index) => {
+      console.log(`  ${index + 1}. ${assignment.phoneNumber}`);
+      console.log(`     Test Case: ${assignment.testCaseTitle}`);
+      console.log();
+    });
     
-    const choice = await askQuestion('\nEnter choice (1 or 2): ');
-    
-    if (choice === '1') {
-      // Wait for completion and show results
-      const results = await waitForCompletion(api, testRunId);
-      if (results) {
-        const dashboardUrl = `${api.baseUrl}/test-runs/${testRunId}`;
-        printTestResults(results, testRunId, dashboardUrl);
-      }
-    } else {
-      // Just show dashboard link
-      const dashboardUrl = `${api.baseUrl}/test-runs/${testRunId}`;
-      console.log('\n✅ Test run created successfully!');
-      console.log(`📊 Dashboard URL: ${dashboardUrl}`);
-      console.log('📞 Call the numbers shown above to execute the tests');
-      console.log('💡 Tip: Monitor progress in the dashboard');
-    }
+    // Show dashboard link
+    const dashboardUrl = `${api.baseUrl}/test-runs/${testRunId}`;
+    console.log(`📊 Dashboard URL: ${dashboardUrl}`);
+    console.log('='.repeat(60));
     
   } catch (error) {
     console.error(`\n❌ Error: ${(error as Error).message}`);
