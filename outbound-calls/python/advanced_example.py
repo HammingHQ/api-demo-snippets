@@ -199,6 +199,32 @@ async def main():
             # Display assigned numbers
             print_assigned_numbers(assigned_numbers)
             
+            # IMPORTANT: Now you need to call these numbers to trigger your agent
+            # Uncomment the following section to see agent dispatch examples:
+            
+            # NEXT STEPS - HOW TO DISPATCH YOUR AGENT:
+            # 1. Use your telephony system to call the assigned numbers above
+            # 2. Your calls will connect to Hamming's test infrastructure  
+            # 3. Hamming will then call your agent's webhook/phone number
+            # 4. Your agent should handle the incoming call and respond appropriately
+            
+            # AGENT DISPATCH EXAMPLES:
+            # • Twilio: client.calls.create(to=assigned_number, from_=your_number, webhook_url)
+            # • Direct SIP: Configure your PBX to call the assigned numbers
+            # • Manual: Call the numbers from your test phone
+            # • Automated: Use your existing call dispatch system
+            
+            # TWILIO INTEGRATION EXAMPLE:
+            # pip install twilio
+            # from twilio.rest import Client
+            # client = Client('your_account_sid', 'your_auth_token')
+            # for assignment in assigned_numbers:
+            #     call = client.calls.create(
+            #         to=assignment['phoneNumber'],
+            #         from_='+1234567890',  # Your Twilio number
+            #         url='https://yourapp.com/voice'  # Your agent's webhook
+            #     )
+            
             # Ask user if they want to wait for completion
             print("\n🤔 Options:")
             print("  1. Wait for test completion (recommended for small tests)")
