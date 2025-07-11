@@ -19,7 +19,7 @@ import time
 from typing import Dict, Any, Optional, List
 
 class HammingOutboundCallAPI:
-    def __init__(self, api_key: str, base_url: str = "http://localhost:3000"):
+    def __init__(self, api_key: str, base_url: str = "https://app.hamming.ai"):
         self.api_key = api_key
         self.base_url = base_url
         self.session: Optional[aiohttp.ClientSession] = None

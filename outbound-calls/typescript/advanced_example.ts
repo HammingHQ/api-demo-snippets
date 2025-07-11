@@ -55,7 +55,7 @@ class HammingVoiceAgentAPI {
   private client: AxiosInstance;
   public baseUrl: string;
 
-  constructor(apiKey: string, baseUrl: string = 'http://localhost:3000') {
+  constructor(apiKey: string, baseUrl: string = 'https://app.hamming.ai') {
     this.baseUrl = baseUrl;
     this.client = axios.create({
       baseURL: baseUrl,

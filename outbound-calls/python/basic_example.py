@@ -13,11 +13,10 @@ Perfect for getting started with voice agent testing.
 import asyncio
 import aiohttp
 import json
-import os
 from typing import Dict, Any, Optional, List
 
 class HammingOutboundCallAPI:
-    def __init__(self, api_key: str, base_url: str = "http://localhost:3000"):
+    def __init__(self, api_key: str, base_url: str = "https://app.hamming.ai"):
         self.api_key = api_key
         self.base_url = base_url
         self.session: Optional[aiohttp.ClientSession] = None
@@ -81,14 +80,9 @@ async def main():
     print("=" * 50)
     
     # Configuration - update these values
-    api_key = os.getenv("HAMMING_API_KEY", "your-api-key-here")
-    agent_id = os.getenv("HAMMING_AGENT_ID", "your-agent-id")
+    api_key = "your-api-key-here"
+    agent_id = "your-agent-id"
     tag_ids = ["default", "api-test"]  # Specify which test cases to run
-    
-    if api_key == "your-api-key-here" or agent_id == "your-agent-id":
-        print("⚠️  Please set HAMMING_API_KEY and HAMMING_AGENT_ID environment variables")
-        print("   Or update the values in the script")
-        return
     
     try:
         async with HammingOutboundCallAPI(api_key) as api:

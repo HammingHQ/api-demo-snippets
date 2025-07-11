@@ -26,7 +26,7 @@ class HammingVoiceAgentAPI {
   private client: AxiosInstance;
   public baseUrl: string;
 
-  constructor(apiKey: string, baseUrl: string = 'http://localhost:3000') {
+  constructor(apiKey: string, baseUrl: string = 'https://app.hamming.ai') {
     this.baseUrl = baseUrl;
     this.client = axios.create({
       baseURL: baseUrl,
@@ -59,15 +59,9 @@ async function main(): Promise<number> {
   console.log('='.repeat(50));
   
   // Configuration - update these values
-  const apiKey = process.env.HAMMING_API_KEY || 'your-api-key-here';
-  const agentId = process.env.HAMMING_AGENT_ID || 'your-agent-id';
+  const apiKey = 'your-api-key-here';
+  const agentId = 'your-agent-id';
   const tagIds = ['default', 'api-test']; // Specify which test cases to run
-  
-  if (apiKey === 'your-api-key-here' || agentId === 'your-agent-id') {
-    console.log('⚠️  Please set HAMMING_API_KEY and HAMMING_AGENT_ID environment variables');
-    console.log('   Or update the values in the script');
-    return 1;
-  }
   
   try {
     const api = new HammingVoiceAgentAPI(apiKey);
