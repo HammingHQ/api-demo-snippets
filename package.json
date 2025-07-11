@@ -1,0 +1,33 @@
+{
+  "name": "hamming-ai-api-demo-snippets",
+  "version": "1.0.0",
+  "description": "Executable code examples for the Hamming AI API",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node",
+    "outbound:basic": "ts-node outbound-calls/typescript/basic_example.ts",
+    "outbound:advanced": "ts-node outbound-calls/typescript/advanced_example.ts",
+    "inbound:basic": "ts-node inbound-calls/typescript/basic_example.ts",
+    "inbound:advanced": "ts-node inbound-calls/typescript/advanced_example.ts"
+  },
+  "keywords": [
+    "hamming",
+    "ai",
+    "voice",
+    "api",
+    "testing",
+    "examples"
+  ],
+  "author": "Hamming AI",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  }
+}
