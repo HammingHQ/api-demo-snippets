@@ -44,9 +44,9 @@ class HammingVoiceAgentAPI {
     timeoutMinutes: number = 10
   ): Promise<TestRunResponse> {
     const response = await this.client.post('/api/rest/test-runs/test-outbound-agent', {
-      agentId,
+      agentId: agentId,
       name: testName || 'TypeScript API Test',
-      timeoutMinutes,
+      timeoutMinutes: timeoutMinutes,
       tagIds: tagIds || ['default']
     });
     
