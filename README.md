@@ -25,26 +25,16 @@ npm install
 
 ```
 api-demo-snippets/
-├── outbound-calls/           # Outbound call testing examples
+├── outbound-calls/           # Voice agent testing examples
 │   ├── python/
-│   │   ├── basic_example.py
-│   │   └── advanced_example.py
+│   │   └── basic_example.py
 │   └── typescript/
-│       ├── basic_example.ts
-│       └── advanced_example.ts
-├── inbound-calls/            # Inbound call testing examples
-│   ├── python/
-│   │   ├── basic_example.py
-│   │   └── advanced_example.py
-│   └── typescript/
-│       ├── basic_example.ts
-│       └── advanced_example.ts
+│       └── basic_example.ts
 ├── shared/                   # Shared utilities and configurations
 │   ├── python/
 │   │   └── hamming_client.py
-│   ├── typescript/
-│   │   └── hamming-client.ts
-│   └── .env.example
+│   └── typescript/
+│       └── hamming-client.ts
 ├── package.json
 ├── tsconfig.json
 └── requirements.txt
@@ -60,29 +50,25 @@ These examples are designed to be:
 
 ## 📖 Usage Examples
 
-### Outbound Calls
-Test your voice agents by making outbound calls:
+### Voice Agent Testing
+Test your voice agents with the Hamming AI API:
 ```bash
-# Python examples
+# Set environment variables
+export HAMMING_API_KEY="your-api-key-here"
+export HAMMING_AGENT_ID="your-agent-id"
+
+# Python example
 python outbound-calls/python/basic_example.py
-python outbound-calls/python/advanced_example.py
 
-# TypeScript examples
-npm run outbound:basic
-npm run outbound:advanced
+# TypeScript example
+npm run test:basic
 ```
 
-### Inbound Calls
-Test your voice agents by setting up inbound call endpoints:
-```bash
-# Python examples
-python inbound-calls/python/basic_example.py
-python inbound-calls/python/advanced_example.py
-
-# TypeScript examples
-npm run inbound:basic
-npm run inbound:advanced
-```
+### How It Works
+1. **Create Test Run**: The API returns assigned phone numbers for your test cases
+2. **Make Calls**: Call the assigned numbers to execute your tests
+3. **Get Results**: Monitor progress and retrieve detailed results
+4. **View Dashboard**: Access comprehensive analytics in the web dashboard
 
 ## 🌐 Multi-language Support
 

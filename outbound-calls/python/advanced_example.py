@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """
-Basic Outbound Call Testing Example
+Advanced Outbound Call Testing Example
 
 This example demonstrates how to:
 1. Create a test run and get assigned phone numbers
 2. Display the numbers to call
-3. Optionally wait for completion and show results
+3. Wait for completion and show detailed results
+4. Save results to file
 
-Perfect for getting started with voice agent testing.
+Perfect for automated testing and CI/CD integration.
 """
 
 import asyncio
 import aiohttp
 import json
 import os
+import time
 from typing import Dict, Any, Optional, List
 
 class HammingOutboundCallAPI:
@@ -143,7 +145,6 @@ async def wait_for_completion(api, test_run_id: str, max_wait_seconds: int = 600
     print(f"\n⏳ Waiting for test run {test_run_id} to complete...")
     print("💡 Tip: You can skip waiting and check results later in the dashboard")
     
-    import time
     start_time = time.time()
     
     while True:
@@ -163,8 +164,8 @@ async def wait_for_completion(api, test_run_id: str, max_wait_seconds: int = 600
     return await api.get_test_results(test_run_id)
 
 async def main():
-    """Run a basic outbound call test."""
-    print("🚀 Starting Basic Outbound Call Test")
+    """Run an advanced outbound call test with full workflow."""
+    print("🚀 Starting Advanced Outbound Call Test")
     print("=" * 50)
     
     # Configuration - update these values
@@ -185,7 +186,7 @@ async def main():
             print("\n🔄 Creating test run...")
             test_run_response = await api.create_test_run(
                 agent_id=agent_id,
-                test_name="Basic Outbound API Test",
+                test_name="Advanced Outbound API Test",
                 tag_ids=tag_ids
             )
             
@@ -196,21 +197,74 @@ async def main():
             print(f"📊 Test Run ID: {test_run_id}")
             
             # Display assigned numbers
-            print(f"\n📞 ASSIGNED PHONE NUMBERS")
-            print("="*60)
-            print("Call these numbers to test your agent:")
+            print_assigned_numbers(assigned_numbers)
             
-            for i, assignment in enumerate(assigned_numbers, 1):
-                phone_number = assignment.get('phoneNumber', 'N/A')
-                test_case = assignment.get('testCaseTitle', 'Unknown Test')
-                print(f"  {i}. {phone_number}")
-                print(f"     Test Case: {test_case}")
-                print()
+            # Ask user if they want to wait for completion
+            print("\n🤔 Options:")
+            print("  1. Wait for test completion (recommended for small tests)")
+            print("  2. Exit now and check results later in dashboard")
             
-            # Show dashboard link
-            dashboard_url = f"{api.base_url}/test-runs/{test_run_id}"
-            print(f"📊 Dashboard URL: {dashboard_url}")
-            print("="*60)
+            choice = input("\nEnter choice (1 or 2): ").strip()
+            
+            if choice == "1":
+                # Monitor the test execution
+                print("\n⏳ Monitoring test execution...")
+                results = await wait_for_completion(api, test_run_id)
+                if results:
+                    print(f"\n🎉 Test completed!")
+                    print(f"📊 Final Status: {results.get('status', 'Unknown')}")
+                    
+                    # Get detailed results
+                    print("\n📊 Retrieving detailed results...")
+                    
+                    # Display results summary
+                    print("\n" + "=" * 50)
+                    print("📋 TEST RESULTS SUMMARY")
+                    print("=" * 50)
+                    
+                    summary = results.get('summary', {})
+                    stats = summary.get('stats', {})
+                    
+                    print(f"Total Calls: {stats.get('total', 0)}")
+                    print(f"Successful Calls: {stats.get('completed', 0) - stats.get('failed', 0)}")
+                    print(f"Failed Calls: {stats.get('failed', 0)}")
+                    print(f"Pending Calls: {stats.get('pending', 0)}")
+                    
+                    # Show individual call results
+                    call_results = results.get('results', [])
+                    if call_results:
+                        print(f"\n📞 INDIVIDUAL CALL RESULTS:")
+                        for i, call in enumerate(call_results, 1):
+                            print(f"\n  Call {i}:")
+                            print(f"    Status: {call.get('status', 'N/A')}")
+                            print(f"    Duration: {call.get('durationSeconds', 0):.1f}s")
+                            
+                            if call.get('recordingUrl'):
+                                print(f"    🎵 Recording: {call['recordingUrl']}")
+                            
+                            if call.get('transcriptionDataUrl'):
+                                print(f"    📝 Transcript: {call['transcriptionDataUrl']}")
+                            
+                            if call.get('analysis'):
+                                analysis = call['analysis']
+                                print(f"    Analysis Score: {analysis.get('overall_score', 'N/A')}")
+                                if analysis.get('key_points'):
+                                    print(f"    Key Points: {', '.join(analysis['key_points'][:3])}")
+                    
+                    # Save results to file
+                    results_file = f"outbound_test_results_{test_run_id}.json"
+                    with open(results_file, 'w') as f:
+                        json.dump(results, f, indent=2)
+                    
+                    print(f"\n💾 Full results saved to: {results_file}")
+                    print("\n🎉 Test completed successfully!")
+            else:
+                # Just show dashboard link
+                dashboard_url = f"{api.base_url}/test-runs/{test_run_id}"
+                print(f"\n✅ Test run created successfully!")
+                print(f"📊 Dashboard URL: {dashboard_url}")
+                print(f"📞 Call the numbers shown above to execute the tests")
+                print(f"💡 Tip: Monitor progress in the dashboard")
         
     except Exception as e:
         print(f"\n❌ Error: {str(e)}")

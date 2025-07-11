@@ -1,154 +1,257 @@
 #!/usr/bin/env ts-node
 /**
- * Basic Outbound Call Testing Example - TypeScript
+ * Basic Voice Agent Testing Example - TypeScript
  * 
  * This example demonstrates how to:
- * 1. Create a simple outbound call test run
- * 2. Monitor the test execution  
- * 3. Retrieve and display results
+ * 1. Create a test run and get assigned phone numbers
+ * 2. Display the numbers to call
+ * 3. Optionally wait for completion and show results
  * 
- * Perfect for getting started with outbound call testing.
+ * Perfect for getting started with voice agent testing.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { HammingClient, TestConfig, TestRun, TestResults } from '../../shared/typescript/hamming-client';
+import axios, { AxiosInstance } from 'axios';
+import * as readline from 'readline';
 
-interface OutboundTestConfig extends TestConfig {
-  phone_numbers: string[];
-  agent_config: {
-    voice: string;
-    personality: string;
-    instructions: string;
-  };
-  test_cases: Array<{
-    name: string;
-    description: string;
-    expected_behaviors: string[];
+interface TestRunResponse {
+  testRunId: string;
+  assignedNumbers: Array<{
+    phoneNumber: string;
+    testCaseTitle: string;
+    testCaseRunId?: string;
   }>;
-  settings: {
-    max_duration: number;
-    recording_enabled: boolean;
-    analysis_enabled: boolean;
-  };
+  expiresAt: string;
 }
 
-async function main(): Promise<void> {
-  console.log('🚀 Starting Basic Outbound Call Test');
-  console.log('='.repeat(50));
-
-  try {
-    // Initialize the Hamming AI client
-    const client = new HammingClient();
-    console.log('✅ Client initialized successfully');
-
-    // Basic test configuration
-    const testConfig: OutboundTestConfig = {
-      name: 'Basic Outbound Test',
-      description: 'Simple outbound call test to verify agent functionality',
-      phone_numbers: [
-        // Add your test phone numbers here
-        // '+1234567890',
-        // '+1987654321'
-      ],
-      agent_config: {
-        voice: 'default',
-        personality: 'helpful and friendly',
-        instructions: 'You are a helpful assistant conducting a test call. Be brief and professional.'
-      },
-      test_cases: [
-        {
-          name: 'Basic Greeting Test',
-          description: 'Test basic greeting and response',
-          expected_behaviors: [
-            'Agent should greet the caller politely',
-            'Agent should identify the purpose of the call',
-            'Agent should handle basic questions'
-          ]
-        }
-      ],
-      settings: {
-        max_duration: 120, // 2 minutes
-        recording_enabled: true,
-        analysis_enabled: true
-      }
+interface TestResults {
+  summary: {
+    id: string;
+    status: string;
+    stats: {
+      total: number;
+      completed: number;
+      failed: number;
+      pending: number;
+      inProgress: number;
     };
+  };
+  results: Array<{
+    id: string;
+    testCaseId: string;
+    status: string;
+    durationSeconds?: number;
+    recordingUrl?: string;
+    transcriptionDataUrl?: string;
+  }>;
+}
 
-    // Add some test phone numbers if none provided
-    if (testConfig.phone_numbers.length === 0) {
-      console.log('⚠️  No phone numbers provided. This is a demo - add real numbers to testConfig.phone_numbers');
-      testConfig.phone_numbers = ['+1234567890']; // Placeholder
+class HammingVoiceAgentAPI {
+  private client: AxiosInstance;
+  public baseUrl: string;
+
+  constructor(apiKey: string, baseUrl: string = 'http://localhost:3000') {
+    this.baseUrl = baseUrl;
+    this.client = axios.create({
+      baseURL: baseUrl,
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+
+  async createTestRun(
+    agentId: string,
+    testName?: string,
+    tagIds?: string[],
+    timeoutMinutes: number = 10
+  ): Promise<TestRunResponse> {
+    const response = await this.client.post('/api/rest/test-runs/test-outbound-agent', {
+      agentId,
+      name: testName || 'TypeScript API Test',
+      timeoutMinutes,
+      tagIds: tagIds || ['default']
+    });
+    
+    return response.data;
+  }
+
+  async getTestRunStatus(testRunId: string): Promise<any> {
+    const response = await this.client.get(`/api/rest/test-runs/${testRunId}/status`);
+    return response.data;
+  }
+
+  async getTestResults(testRunId: string): Promise<TestResults> {
+    const response = await this.client.get(`/api/rest/test-runs/${testRunId}/results`);
+    return response.data;
+  }
+}
+
+function printAssignedNumbers(assignedNumbers: TestRunResponse['assignedNumbers']): void {
+  console.log('\n📞 ASSIGNED PHONE NUMBERS');
+  console.log('='.repeat(60));
+  console.log('Call these numbers to test your agent:');
+  
+  assignedNumbers.forEach((assignment, index) => {
+    console.log(`  ${index + 1}. ${assignment.phoneNumber}`);
+    console.log(`     Test Case: ${assignment.testCaseTitle}`);
+    console.log(`     Test ID: ${assignment.testCaseRunId || 'N/A'}`);
+    console.log();
+  });
+  
+  console.log('📋 Instructions:');
+  console.log('  1. Call each number from your test phone');
+  console.log('  2. Follow the test case scenario');
+  console.log('  3. Wait for the test run to complete');
+  console.log('  4. Review results in the dashboard');
+  console.log('='.repeat(60));
+}
+
+function printTestResults(results: TestResults, testRunId: string, dashboardUrl: string): void {
+  console.log('\n' + '='.repeat(60));
+  console.log('VOICE AGENT TEST RESULTS');
+  console.log('='.repeat(60));
+  console.log(`Test Run ID: ${testRunId}`);
+  console.log(`View Results: ${dashboardUrl}`);
+  
+  const { stats } = results.summary;
+  console.log(`Total Tests: ${stats.total}`);
+  console.log(`Completed: ${stats.completed}`);
+  console.log(`Failed: ${stats.failed}`);
+  console.log(`Pending: ${stats.pending}`);
+  
+  if (stats.completed > 0) {
+    const successRate = ((stats.completed - stats.failed) / stats.completed) * 100;
+    console.log(`Success Rate: ${successRate.toFixed(1)}%`);
+  }
+  
+  // Show individual test results
+  if (results.results.length > 0) {
+    console.log(`\nIndividual Test Results (${results.results.length} tests):`);
+    results.results.forEach((result, index) => {
+      console.log(`  ${index + 1}. Status: ${result.status}, Duration: ${result.durationSeconds || 0}s`);
+      
+      if (result.recordingUrl) {
+        console.log(`     🎵 Recording: ${result.recordingUrl}`);
+      }
+      
+      if (result.transcriptionDataUrl) {
+        console.log(`     📝 Transcript: ${result.transcriptionDataUrl}`);
+      }
+    });
+  }
+  
+  console.log('='.repeat(60));
+}
+
+async function waitForCompletion(api: HammingVoiceAgentAPI, testRunId: string, maxWaitSeconds: number = 600): Promise<TestResults | null> {
+  console.log(`\n⏳ Waiting for test run ${testRunId} to complete...`);
+  console.log('💡 Tip: You can skip waiting and check results later in the dashboard');
+  
+  const startTime = Date.now();
+  
+  while (true) {
+    if (Date.now() - startTime > maxWaitSeconds * 1000) {
+      console.log(`⏰ Timeout reached (${maxWaitSeconds}s). Check dashboard for results.`);
+      return null;
     }
+    
+    const status = await api.getTestRunStatus(testRunId);
+    
+    if (['COMPLETED', 'FAILED'].includes(status.status)) {
+      console.log(`✅ Test run ${status.status.toLowerCase()}`);
+      break;
+    }
+    
+    console.log(`🔄 Status: ${status.status} - waiting...`);
+    await new Promise(resolve => setTimeout(resolve, 10000));
+  }
+  
+  return await api.getTestResults(testRunId);
+}
 
-    console.log(`📞 Test will call ${testConfig.phone_numbers.length} number(s)`);
-    console.log(`📋 Test cases: ${testConfig.test_cases.length}`);
+function askQuestion(question: string): Promise<string> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  
+  return new Promise(resolve => {
+    rl.question(question, answer => {
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
+}
 
-    // Create the test run
+async function main(): Promise<number> {
+  console.log('🚀 Starting Basic Voice Agent Test');
+  console.log('='.repeat(50));
+  
+  // Configuration - update these values
+  const apiKey = process.env.HAMMING_API_KEY || 'your-api-key-here';
+  const agentId = process.env.HAMMING_AGENT_ID || 'your-agent-id';
+  const tagIds = ['default', 'api-test']; // Specify which test cases to run
+  
+  if (apiKey === 'your-api-key-here' || agentId === 'your-agent-id') {
+    console.log('⚠️  Please set HAMMING_API_KEY and HAMMING_AGENT_ID environment variables');
+    console.log('   Or update the values in the script');
+    return 1;
+  }
+  
+  try {
+    const api = new HammingVoiceAgentAPI(apiKey);
+    console.log('✅ API client initialized');
+    
+    // Create test run
     console.log('\n🔄 Creating test run...');
-    const testRun: TestRun = await client.createOutboundTestRun(testConfig);
-    const runId = testRun.run_id;
-
+    const testRunResponse = await api.createTestRun(
+      agentId,
+      'Basic TypeScript API Test',
+      tagIds
+    );
+    
+    const testRunId = testRunResponse.testRunId;
+    const assignedNumbers = testRunResponse.assignedNumbers;
+    
     console.log('✅ Test run created successfully!');
-    console.log(`📊 Run ID: ${runId}`);
-    console.log(`🔗 Status: ${testRun.status}`);
-
-    // Monitor the test execution
-    console.log('\n⏳ Monitoring test execution...');
-    const finalStatus: TestRun = await client.waitForCompletion(runId, 'outbound');
-
-    console.log('\n🎉 Test completed!');
-    console.log(`📊 Final Status: ${finalStatus.status}`);
-
-    // Get detailed results
-    console.log('\n📊 Retrieving detailed results...');
-    const results: TestResults = await client.getOutboundTestResults(runId);
-
-    // Display results summary
-    console.log('\n' + '='.repeat(50));
-    console.log('📋 TEST RESULTS SUMMARY');
-    console.log('='.repeat(50));
-
-    console.log(`Total Calls: ${results.total_calls || 0}`);
-    console.log(`Successful Calls: ${results.successful_calls || 0}`);
-    console.log(`Failed Calls: ${results.failed_calls || 0}`);
-    console.log(`Average Duration: ${(results.average_duration || 0).toFixed(1)}s`);
-
-    // Show individual call results
-    if (results.calls && results.calls.length > 0) {
-      console.log('\n📞 INDIVIDUAL CALL RESULTS:');
-      results.calls.forEach((call, index) => {
-        console.log(`\n  Call ${index + 1}:`);
-        console.log(`    Phone: ${call.phone_number || 'N/A'}`);
-        console.log(`    Status: ${call.status || 'N/A'}`);
-        console.log(`    Duration: ${(call.duration || 0).toFixed(1)}s`);
-
-        if (call.transcript) {
-          console.log(`    Transcript Preview: ${call.transcript.substring(0, 100)}...`);
-        }
-
-        if (call.analysis) {
-          console.log(`    Analysis Score: ${call.analysis.overall_score || 'N/A'}`);
-          if (call.analysis.key_points) {
-            console.log(`    Key Points: ${call.analysis.key_points.slice(0, 3).join(', ')}`);
-          }
-        }
-      });
+    console.log(`📊 Test Run ID: ${testRunId}`);
+    
+    // Display assigned numbers
+    printAssignedNumbers(assignedNumbers);
+    
+    // Ask user if they want to wait for completion
+    console.log('\n🤔 Options:');
+    console.log('  1. Wait for test completion (recommended for small tests)');
+    console.log('  2. Exit now and check results later in dashboard');
+    
+    const choice = await askQuestion('\nEnter choice (1 or 2): ');
+    
+    if (choice === '1') {
+      // Wait for completion and show results
+      const results = await waitForCompletion(api, testRunId);
+      if (results) {
+        const dashboardUrl = `${api.baseUrl}/test-runs/${testRunId}`;
+        printTestResults(results, testRunId, dashboardUrl);
+      }
+    } else {
+      // Just show dashboard link
+      const dashboardUrl = `${api.baseUrl}/test-runs/${testRunId}`;
+      console.log('\n✅ Test run created successfully!');
+      console.log(`📊 Dashboard URL: ${dashboardUrl}`);
+      console.log('📞 Call the numbers shown above to execute the tests');
+      console.log('💡 Tip: Monitor progress in the dashboard');
     }
-
-    // Save results to file
-    const resultsFile = `outbound_test_results_${runId}.json`;
-    fs.writeFileSync(resultsFile, JSON.stringify(results, null, 2));
-
-    console.log(`\n💾 Full results saved to: ${resultsFile}`);
-    console.log('\n🎉 Test completed successfully!');
-
+    
   } catch (error) {
     console.error(`\n❌ Error: ${(error as Error).message}`);
-    process.exit(1);
+    return 1;
   }
+  
+  return 0;
 }
 
 // Run the example
 if (require.main === module) {
-  main().catch(console.error);
+  main().then(process.exit).catch(console.error);
 }
